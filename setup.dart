@@ -470,8 +470,8 @@ class BuildCommand extends Command {
         final targetMap = {Arch.arm64: 'linux-arm64', Arch.amd64: 'linux-x64'};
         final targets = [
           'deb',
-          'appimage',
-          if (arch == Arch.amd64) 'rpm',
+          if (arch == Arch.amd64) 'appimage',
+          'rpm',
         ].join(',');
         final defaultTarget = targetMap[arch];
         await _getLinuxDependencies(arch!);

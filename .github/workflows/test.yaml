@@ -1,0 +1,52 @@
+name: test
+
+on:
+  workflow_dispatch:
+env:
+  IS_STABLE: ${{ !contains(github.ref, '-') }}
+
+jobs:
+  test:
+    runs-on: ubuntu-24.04-arm
+  
+    steps:
+      - name: Setup rust
+        if: startsWith(matrix.os, 'windows-11-arm')
+        run: |
+          Invoke-WebRequest -Uri "https://win.rustup.rs/aarch64" -OutFile rustup-init.exe
+          .\rustup-init.exe -y --default-toolchain stable
+          $cargoPath = "$env:USERPROFILE\.cargo\bin"
+          Add-Content $env:GITHUB_PATH $cargoPath
+      
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Setup Android Signing
+        if: startsWith(matrix.platform,'android')
+        run: |
+          echo "${{ secrets.KEYSTORE }}" | base64 --decode > android/app/keystore.jks
+          echo "${{ secrets.SERVICE_JSON }}" | base64 --decode > android/app/google-services.json
+          echo "keyAlias=${{ secrets.KEY_ALIAS }}" >> android/local.properties
+          echo "storePassword=${{ secrets.STORE_PASSWORD }}" >> android/local.properties
+          echo "keyPassword=${{ secrets.KEY_PASSWORD }}" >> android/local.properties
+      
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.24.0'
+          cache-dependency-path: |
+            core/go.sum
+      
+      - name: Setup Flutter Master
+        uses: subosito/flutter-action@v2
+        with:
+          channel: 'master'
+          cache: true
+        
+      - name: Get Flutter Dependency
+        run: flutter pub get
+
+      - name: Setup tmate session
+        uses: mxschmitt/action-tmate@v3
