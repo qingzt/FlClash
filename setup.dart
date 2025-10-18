@@ -290,27 +290,10 @@ class Build {
   }
 
   static Future<void> getDistributor() async {
-    final distributorDir = join(
-      current,
-      'plugins',
-      'flutter_distributor',
-      'packages',
-      'flutter_distributor',
-    );
-
+    // Using fastforge from pub.dev (successor of flutter_distributor)
     await exec(
-      name: 'clean distributor',
-      Build.getExecutable('flutter clean'),
-      workingDirectory: distributorDir,
-    );
-    await exec(
-      name: 'upgrade distributor',
-      Build.getExecutable('flutter pub upgrade'),
-      workingDirectory: distributorDir,
-    );
-    await exec(
-      name: 'get distributor',
-      Build.getExecutable('dart pub global activate -s path $distributorDir'),
+      name: 'get fastforge',
+      Build.getExecutable('dart pub global activate flutter_distributor'),
     );
   }
 
@@ -381,21 +364,20 @@ class BuildCommand extends Command {
       Build.getExecutable('sudo apt-get install -y libkeybinder-3.0-dev'),
     );
     await Build.exec(Build.getExecutable('sudo apt install -y locate'));
-    if (arch == Arch.amd64) {
-      await Build.exec(Build.getExecutable('sudo apt install -y rpm patchelf'));
-      await Build.exec(Build.getExecutable('sudo apt install -y libfuse2'));
+    // Install rpm and appimage tools for both amd64 and arm64
+    await Build.exec(Build.getExecutable('sudo apt install -y rpm patchelf'));
+    await Build.exec(Build.getExecutable('sudo apt install -y libfuse2'));
 
-      final downloadName = arch == Arch.amd64 ? 'x86_64' : 'aarch64';
-      await Build.exec(
-        Build.getExecutable(
-          'wget -O appimagetool https://github.com/AppImage/AppImageKit/releases/download/continuous/appimagetool-$downloadName.AppImage',
-        ),
-      );
-      await Build.exec(Build.getExecutable('chmod +x appimagetool'));
-      await Build.exec(
-        Build.getExecutable('sudo mv appimagetool /usr/local/bin/'),
-      );
-    }
+    final downloadName = arch == Arch.amd64 ? 'x86_64' : 'aarch64';
+    await Build.exec(
+      Build.getExecutable(
+        'wget -O appimagetool https://github.com/AppImage/AppImageKit/releases/download/continuous/appimagetool-$downloadName.AppImage',
+      ),
+    );
+    await Build.exec(Build.getExecutable('chmod +x appimagetool'));
+    await Build.exec(
+      Build.getExecutable('sudo mv appimagetool /usr/local/bin/'),
+    );
   }
 
   Future<void> _getMacosDependencies() async {
@@ -470,8 +452,8 @@ class BuildCommand extends Command {
         final targetMap = {Arch.arm64: 'linux-arm64', Arch.amd64: 'linux-x64'};
         final targets = [
           'deb',
-          if (arch == Arch.amd64) 'appimage',
-          if (arch == Arch.amd64) 'rpm',
+          'appimage',
+          'rpm',
         ].join(',');
         final defaultTarget = targetMap[arch];
         await _getLinuxDependencies(arch!);
