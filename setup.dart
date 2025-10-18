@@ -310,7 +310,7 @@ class Build {
     );
     await exec(
       name: 'get distributor',
-      Build.getExecutable('dart pub global activate -s path $distributorDir'),
+      Build.getExecutable('dart pub global activate fastforge'),
     );
   }
 
@@ -370,6 +370,7 @@ class BuildCommand extends Command {
       .toList();
 
   Future<void> _getLinuxDependencies(Arch arch) async {
+    await Build.exec(Build.getExecutable('sudo add-apt-repository universe -y'));
     await Build.exec(Build.getExecutable('sudo apt update -y'));
     await Build.exec(
       Build.getExecutable('sudo apt install -y ninja-build libgtk-3-dev'),
@@ -381,21 +382,20 @@ class BuildCommand extends Command {
       Build.getExecutable('sudo apt-get install -y libkeybinder-3.0-dev'),
     );
     await Build.exec(Build.getExecutable('sudo apt install -y locate'));
-    if (arch == Arch.amd64) {
-      await Build.exec(Build.getExecutable('sudo apt install -y rpm patchelf'));
-      await Build.exec(Build.getExecutable('sudo apt install -y libfuse2'));
+    await Build.exec(Build.getExecutable('sudo apt install -y rpm patchelf'));
+    await Build.exec(Build.getExecutable('sudo apt install -y libfuse2'));
+    await Build.exec(Build.getExecutable('sudo apt install -y libfuse2t64'));
 
-      final downloadName = arch == Arch.amd64 ? 'x86_64' : 'aarch64';
-      await Build.exec(
-        Build.getExecutable(
-          'wget -O appimagetool https://github.com/AppImage/AppImageKit/releases/download/continuous/appimagetool-$downloadName.AppImage',
-        ),
-      );
-      await Build.exec(Build.getExecutable('chmod +x appimagetool'));
-      await Build.exec(
-        Build.getExecutable('sudo mv appimagetool /usr/local/bin/'),
-      );
-    }
+    final downloadName = arch == Arch.amd64 ? 'x86_64' : 'aarch64';
+    await Build.exec(
+      Build.getExecutable(
+        'wget -O appimagetool https://github.com/AppImage/AppImageKit/releases/download/continuous/appimagetool-$downloadName.AppImage',
+      ),
+    );
+    await Build.exec(Build.getExecutable('chmod +x appimagetool'));
+    await Build.exec(
+      Build.getExecutable('sudo mv appimagetool /usr/local/bin/'),
+    );
   }
 
   Future<void> _getMacosDependencies() async {
@@ -412,7 +412,7 @@ class BuildCommand extends Command {
     await Build.exec(
       name: name,
       Build.getExecutable(
-        'flutter_distributor package --skip-clean --platform ${target.name} --targets $targets --flutter-build-args=verbose$args --build-dart-define=APP_ENV=$env',
+        'fastforge package --platform ${target.name} --targets $targets --flutter-build-args=verbose$args --build-dart-define=APP_ENV=$env',
       ),
     );
   }
@@ -462,7 +462,7 @@ class BuildCommand extends Command {
           target: target,
           targets: 'exe,zip',
           args:
-              ' --description $archName --build-dart-define=CORE_SHA256=$token',
+              ' --build-dart-define=CORE_SHA256=$token',
           env: env,
         );
         return;
@@ -470,7 +470,7 @@ class BuildCommand extends Command {
         final targetMap = {Arch.arm64: 'linux-arm64', Arch.amd64: 'linux-x64'};
         final targets = [
           'deb',
-          if (arch == Arch.amd64) 'appimage',
+          'appimage',
           if (arch == Arch.amd64) 'rpm',
         ].join(',');
         final defaultTarget = targetMap[arch];
@@ -479,7 +479,7 @@ class BuildCommand extends Command {
           target: target,
           targets: targets,
           args:
-              ' --description $archName --build-target-platform $defaultTarget',
+              ' --build-target-platform $defaultTarget',
           env: env,
         );
         return;
@@ -507,7 +507,7 @@ class BuildCommand extends Command {
         _buildDistributor(
           target: target,
           targets: 'dmg',
-          args: ' --description $archName',
+          args: '',
           env: env,
         );
         return;
